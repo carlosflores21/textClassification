@@ -1,0 +1,9 @@
+transformers
+torch
+pandas
+numpy<2
+sentencepiece
+flask
+langdetect
+spacy
+googletrans==4.0.0-rc1

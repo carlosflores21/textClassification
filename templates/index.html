@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Classification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <button id="config-button"><i class="fas fa-cog"></i></button>
+        <h1>Text Classification</h1>
+        <form method="POST">
+            <div style="margin-bottom: 15px;">
+                <label for="text">Enter text:</label>
+                <textarea id="text" name="text" rows="4" cols="50">{{ text }}</textarea>
+            </div>
+            <input type="hidden" id="function1" name="function1" value="{{ 'true' if function1 else 'false' }}">
+            <input type="hidden" id="function2" name="function2" value="{{ 'true' if function2 else 'false' }}">
+            <input type="hidden" id="function3" name="function3" value="{{ 'true' if function3 else 'false' }}">
+            <input type="hidden" id="function4" name="function4" value="{{ 'true' if function4 else 'false' }}">
+            <input type="hidden" id="function5" name="function5" value="{{ 'true' if function5 else 'false' }}">
+            <input type="hidden" id="function6" name="function6" value="{{ 'true' if function6 else 'false' }}">
+            <input type="hidden" id="level" name="level" value="{{ level }}">
+            <div class="button-container">
+                <button type="submit">Evaluate</button>
+                <button type="button" id="clear-button">Reset</button>
+            </div>
+        </form>
+        {% if predictions_DT and predictions_RB %}
+            <div id="cards-container" class="cards-container">
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2>Toxicity Analysis (DistilBERT)</h2>
+                            <div class="toxicity-bar" data-percentage="{{ predictions_DT['target']['probability'] * 100 }}">
+                                <div class="circle"></div>
+                            </div>
+                            <div class="toxicity-status {{ 'toxic' if predictions_DT['target']['value'] == 1 else 'not-toxic' }}">
+                                {% if predictions_DT['target']['value'] == 1 %}
+                                    Toxic
+                                {% else %}
+                                    No toxic
+                                {% endif %}
+                            </div>
+                            <div class="toxicity-details">
+                                <ul>
+                                    {% for label, result in predictions_DT.items() %}
+                                        {% if label != 'target' %}
+                                            <li>
+                                                <span class="label-text">{{ label.replace('_', ' ').title() }}</span>
+                                                <span class="label-percentage">{{ (result.probability * 100)|round(1) }}%</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <button class="details-button" onclick="toggleCard(this)">Details</button>
+                        </div>
+                        <div class="card-back">
+                            <h2>Predictions from DistilBERT:</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Label</th>
+                                        <th>Binary</th>
+                                        <th>Probability</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for label, result in predictions_DT.items() %}
+                                        <tr>
+                                            <td>{{ label }}</td>
+                                            <td>{{ result.value }}</td>
+                                            <td>{{ result.probability|round(4) }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <button class="details-button" onclick="toggleCard(this)">Back</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2>Toxicity Analysis (RoBERTa)</h2>
+                            <div class="toxicity-bar" data-percentage="{{ predictions_RB['target']['probability'] * 100 }}">
+                                <div class="circle"></div>
+                            </div>
+                            <div class="toxicity-status {{ 'toxic' if predictions_RB['target']['value'] == 1 else 'not-toxic' }}">
+                                {% if predictions_RB['target']['value'] == 1 %}
+                                    Toxic
+                                {% else %}
+                                    No toxic
+                                {% endif %}
+                            </div>
+                            <div class="toxicity-details">
+                                <ul>
+                                    {% for label, result in predictions_RB.items() %}
+                                        {% if label != 'target' %}
+                                            <li>
+                                                <span class="label-text">{{ label.replace('_', ' ').title() }}</span>
+                                                <span class="label-percentage">{{ (result.probability * 100)|round(1) }}%</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <button class="details-button" onclick="toggleCard(this)">Details</button>
+                        </div>
+                        <div class="card-back">
+                            <h2>Predictions from RoBERTa:</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Label</th>
+                                        <th>Binary</th>
+                                        <th>Probability</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for label, result in predictions_RB.items() %}
+                                        <tr>
+                                            <td>{{ label }}</td>
+                                            <td>{{ result.value }}</td>
+                                            <td>{{ result.probability|round(4) }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <button class="details-button" onclick="toggleCard(this)">Back</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Modal -->
+    <div id="config-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Configurations</h2>
+            <div class="switch-container">
+                <div class="column">
+                    <div class="switch-item">
+                        <label class="switch">
+                            <input type="checkbox" id="toggleFunction1">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="switch-label">Clean text</span>
+                    </div>
+                    <div class="switch-item">
+                        <label class="switch">
+                            <input type="checkbox" id="toggleFunction2">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="switch-label">Language support</span>
+                    </div>
+                    <div class="switch-item">
+                        <label class="switch">
+                            <input type="checkbox" id="toggleFunction3">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="switch-label">Text perturbations</span>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="switch-item">
+                        <label class="switch">
+                            <input type="checkbox" id="toggleFunction4">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="switch-label">Function 4</span>
+                    </div>
+                    <div class="switch-item">
+                        <label class="switch">
+                            <input type="checkbox" id="toggleFunction5">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="switch-label">Function 5</span>
+                    </div>
+                    <div class="switch-item">
+                        <label class="switch">
+                            <input type="checkbox" id="toggleFunction6">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="switch-label">Function 6</span>
+                    </div>
+                </div>
+            </div>
+            <div class="slider-container">
+                <label for="thresholdRange" id="thresholdLabel">Toxicity threshold control</label>
+                <input type="range" id="thresholdRange" name="threshold" min="0" max="10" value="5">
+                <div class="slider-ticks">
+                    <span>0</span>
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>7</span>
+                    <span>8</span>
+                    <span>9</span>
+                    <span>10</span>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="ok-button">Save</button>
+                <button id="default-config-button"><i class="fas fa-redo"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
